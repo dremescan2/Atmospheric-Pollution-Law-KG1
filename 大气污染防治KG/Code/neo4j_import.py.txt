@@ -1,0 +1,39 @@
+from neo4j import GraphDatabase
+import json
+
+# 连接信息（改成你自己的）
+uri = "bolt://localhost:7687"
+user = "neo4j"
+password = "12345678"
+
+driver = GraphDatabase.driver(uri, auth=(user, password))
+
+# 导入实体
+with open("../Data/KG_Data/entities.json", "r", encoding="utf-8") as f:
+    entities = json.load(f)
+
+# 导入关系
+with open("../Data/KG_Data/relations.json", "r", encoding="utf-8") as f:
+    relations = json.load(f)
+
+def create_nodes():
+    with driver.session() as s:
+        for e in entities:
+            name = e["name"]
+            t = e["type"]
+            s.run(f"MERGE (n:{t}{{name:$name}})", name=name)
+    print("节点创建完成")
+
+def create_relations():
+    with driver.session() as s:
+        for r in relations:
+            s.run(f"""
+                MATCH (a{{name:$s}}),(b{{name:$t}})
+                MERGE (a)-[r:{r['relation']}]->(b)
+            """, s=r["source"], t=r["target"])
+    print("关系创建完成")
+
+if __name__ == "__main__":
+    create_nodes()
+    create_relations()
+    driver.close()

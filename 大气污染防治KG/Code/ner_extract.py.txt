@@ -1,0 +1,46 @@
+import json
+import os
+import re
+
+in_dir = "../Data/Processed_Data/"
+out_path = "../Data/KG_Data/entities.json"
+
+# 实体词典
+entities_dict = {
+    "法律法规": [],
+    "国家标准": ["GB 3095-2012", "环境空气质量标准"],
+    "污染因子": ["PM2.5", "二氧化硫", "氮氧化物", "VOCs", "颗粒物", "臭氧"],
+    "责任主体": ["企业", "生态环境部门", "地方政府", "排污单位"],
+    "治理措施": ["脱硫", "脱硝", "除尘", "在线监测", "排污许可"],
+    "处罚条款": []
+}
+
+def extract_entities():
+    all_entities = []
+    seen = set()
+
+    for fname in os.listdir(in_dir):
+        with open(os.path.join(in_dir, fname), "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # 抽取法规名
+        laws = re.findall(r"《[^》]+》", content)
+        for law in laws:
+            if law not in seen:
+                seen.add(law)
+                all_entities.append({"name": law, "type": "法律法规"})
+
+        # 抽取污染因子
+        for k, v in entities_dict.items():
+            for item in v:
+                if item in content and item not in seen:
+                    seen.add(item)
+                    all_entities.append({"name": item, "type": k})
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(all_entities, f, ensure_ascii=False, indent=2)
+
+    print(f"实体已保存到 {out_path}")
+
+if __name__ == "__main__":
+    extract_entities()

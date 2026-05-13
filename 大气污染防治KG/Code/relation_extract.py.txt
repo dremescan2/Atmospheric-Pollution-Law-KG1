@@ -1,0 +1,46 @@
+import json
+import os
+import re
+
+in_dir = "../Data/Processed_Data/"
+out_path = "../Data/KG_Data/relations.json"
+
+def extract_relations():
+    relations = []
+    seen = set()
+
+    for fname in os.listdir(in_dir):
+        with open(os.path.join(in_dir, fname), "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            if "条款" in line:
+                clause = line[:20]  # 条款编号
+
+                # 关系1：条款 -> 管控污染因子
+                for p in ["PM2.5", "二氧化硫", "氮氧化物", "VOCs"]:
+                    if p in line:
+                        key = (clause, "管控", p)
+                        if key not in seen:
+                            seen.add(key)
+                            relations.append({
+                                "source": clause, "target": p, "relation": "管控"
+                            })
+
+                # 关系2：条款 -> 约束责任主体
+                for sub in ["企业", "生态环境部门", "地方政府"]:
+                    if sub in line:
+                        key = (clause, "约束", sub)
+                        if key not in seen:
+                            seen.add(key)
+                            relations.append({
+                                "source": clause, "target": sub, "relation": "约束"
+                            })
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(relations, f, ensure_ascii=False, indent=2)
+
+    print(f"关系已保存到 {out_path}")
+
+if __name__ == "__main__":
+    extract_relations()
